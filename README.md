@@ -17,5 +17,8 @@ It checks:
 
 See full project layout inside this repository. The `src/` folder contains all logic, and all generated reports go to `reports/html/`.
 
-## How to Run
+## How to install
+ pip install -r requirements.txt   
 
+## How to Run
+ python3 src/main.py
