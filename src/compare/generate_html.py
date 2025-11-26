@@ -1,112 +1,184 @@
-import pandas as pd
-from utils.helpers import safe_len
+import os
+
 
 def create_html_report(
-    sf,
-    laweb,
-    missing_in_laweb,
-    missing_in_sf,
-    dtype_diff,
-    ids_sf_only,
-    ids_laweb_only,
-    row_diff,
-    primary_key="ID",
-    output="reports/html/guarantee_comparison_report.html",
-):
-    total_sf_cols = len(sf.columns) if sf is not None else 0
-    total_laweb_cols = len(laweb.columns) if laweb is not None else 0
-    total_sf_rows = len(sf) if sf is not None else 0
-    total_laweb_rows = len(laweb) if laweb is not None else 0
+    table_name: str,
+    score: float,
+    passed: int,
+    failed: int,
+    skipped: int,
+    critical_failed: int,
+    rule_table_html: str,
+    missing_columns_html: str,
+    dtype_diff_html: str,
+    id_diff_html: str,
+    row_diff_html: str,
+    output_folder: str = "reports/html",
+) -> str:
+    """
+    Generate a HTML dashboard-style report.
+    """
 
-    if sf is not None and laweb is not None and primary_key in sf.columns and primary_key in laweb.columns:
-        common_ids = len(sf.merge(laweb, on=primary_key, how="inner"))
-    else:
-        common_ids = 0
+    # Gauge segments: red (0-50), orange (50-70), green (70-100)
+    score = float(score)
+    score_fail_deg = max(0.0, min(score, 50.0)) * 3.6
+    score_warn_deg = max(0.0, min(score - 50.0, 20.0)) * 3.6
+    score_pass_deg = max(0.0, max(score - 70.0, 0.0)) * 3.6
 
-    dtype_df = pd.DataFrame(dtype_diff) if dtype_diff else pd.DataFrame(columns=["column", "sf_dtype", "laweb_dtype"])
+    template = """
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>{{table_name}} – Data Quality Dashboard</title>
 
-    warning_messages = []
-    if sf is None:
-        warning_messages.append("SF file not found – SF-related analysis is limited or unavailable.")
-    if laweb is None:
-        warning_messages.append("LAWEB file not found – LAWEB-related analysis is limited or unavailable.")
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+        background: #121417;
+        color: #e8e8e8;
+        margin: 0;
+        padding: 0;
+    }
+    .header {
+        background: linear-gradient(135deg,#007bff,#003d99);
+        padding: 30px;
+        text-align:center;
+        font-size:30px;
+        font-weight:bold;
+        color:white;
+        box-shadow:0 3px 10px rgba(0,0,0,0.4);
+    }
+    .container { width:94%; margin:20px auto; }
+    .card {
+        background: rgba(255,255,255,0.07);
+        border-radius:14px;
+        padding:20px;
+        margin-bottom:25px;
+        box-shadow:0 4px 14px rgba(0,0,0,0.35);
+    }
+    .flex-row { display:flex; flex-wrap:wrap; gap:20px; }
+    .gauge {
+        width:260px;height:260px;border-radius:50%;
+        background: conic-gradient(
+            #ff3d3d {{score_fail_deg}}deg,
+            #ffcc00 {{score_warn_deg}}deg,
+            #00cc66 {{score_pass_deg}}deg
+        );
+        display:flex;align-items:center;justify-content:center;
+    }
+    .gauge-center {
+        width:180px;height:180px;border-radius:50%;
+        background:#121417;
+        font-size:42px;font-weight:bold;color:#00ff9d;
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:0 0 18px rgba(0,255,157,0.45);
+    }
+    .summary-box { flex:1;min-width:200px;text-align:center; }
+    .summary-value { font-size:34px;font-weight:bold; }
+    .pass{color:#00ff9d;} .fail{color:#ff5252;} .warn{color:#ffcc00;}
 
-    html = []
-    html.append("<html><head><meta charset='UTF-8'><title>Guarantee Comparison Report</title>")
-    html.append("""
-    <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background: #f5f7fb; }
-    h1, h2 { color: #1f3b57; }
-    .warning { background: #fff3cd; border: 1px solid #ffeeba; padding: 10px; margin-bottom: 10px; }
-    table { border-collapse: collapse; width: 100%; margin-bottom: 20px; background: #fff; }
-    th, td { border: 1px solid #ddd; padding: 6px 8px; font-size: 13px; }
-    th { background: #1f3b57; color: #fff; }
-    .sf-cell { background: #e2f0ff; }
-    .laweb-cell { background: #ffe2e2; }
-    </style>
-    """)
-    html.append("</head><body>")
-    html.append("<h1>Guarantee Table Comparison Report</h1>")
+    details {
+        background: rgba(255,255,255,0.06);
+        padding:14px;border-radius:12px;margin-bottom:20px;
+        box-shadow:0 2px 6px rgba(0,0,0,0.4);
+    }
+    summary {font-size:20px;font-weight:bold;cursor:pointer;}
 
-    for w in warning_messages:
-        html.append(f"<div class='warning'>{w}</div>")
+    table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px;}
+    th{background:#1f2937;padding:10px;}
+    td{padding:7px;border-bottom:1px solid #333;}
+    tr:nth-child(even){background:#1a1f25;}
+    tr:hover{background:#28333f;}
 
-    html.append("<h2>Summary</h2>")
-    html.append("<table>")
-    html.append("<tr><th>Metric</th><th>Value</th></tr>")
-    html.append(f"<tr><td>Columns (SF)</td><td>{total_sf_cols}</td></tr>")
-    html.append(f"<tr><td>Columns (LAWEB)</td><td>{total_laweb_cols}</td></tr>")
-    html.append(f"<tr><td>Rows (SF)</td><td>{total_sf_rows}</td></tr>")
-    html.append(f"<tr><td>Rows (LAWEB)</td><td>{total_laweb_rows}</td></tr>")
-    html.append(f"<tr><td>Rows with common {primary_key}</td><td>{common_ids}</td></tr>")
-    html.append(f"<tr><td>Columns missing in LAWEB</td><td>{len(missing_in_laweb)}</td></tr>")
-    html.append(f"<tr><td>Columns missing in SF</td><td>{len(missing_in_sf)}</td></tr>")
-    html.append(f"<tr><td>Datatype mismatches</td><td>{len(dtype_df)}</td></tr>")
-    html.append(f"<tr><td>{primary_key}s only in SF</td><td>{safe_len(ids_sf_only)}</td></tr>")
-    html.append(f"<tr><td>{primary_key}s only in LAWEB</td><td>{safe_len(ids_laweb_only)}</td></tr>")
-    html.append(f"<tr><td>Row mismatches (sample)</td><td>{safe_len(row_diff)}</td></tr>")
-    html.append("</table>")
+    .rule-pass{color:#00ff9d;font-weight:bold;}
+    .rule-fail{color:#ff6666;font-weight:bold;}
+    .rule-skip{color:#ffcc00;font-weight:bold;}
 
-    # Column comparison
-    html.append("<h2>Columns present in SF but missing in LAWEB</h2>")
-    if missing_in_laweb:
-        html.append("<ul>")
-        for c in missing_in_laweb:
-            html.append(f"<li>{c}</li>")
-        html.append("</ul>")
-    else:
-        html.append("<p><em>None</em></p>")
+    .sf-cell{background:#661111;color:#ffbaba;padding:3px;border-radius:4px;}
+    .lw-cell{background:#0d4d22;color:#9effc2;padding:3px;border-radius:4px;}
 
-    html.append("<h2>Columns present in LAWEB but missing in SF</h2>")
-    if missing_in_sf:
-        html.append("<ul>")
-        for c in missing_in_sf:
-            html.append(f"<li>{c}</li>")
-        html.append("</ul>")
-    else:
-        html.append("<p><em>None</em></p>")
+</style>
+</head>
 
-    # Datatype mismatches
-    html.append("<h2>Datatype mismatches</h2>")
-    if not dtype_df.empty:
-        html.append(dtype_df.to_html(index=False))
-    else:
-        html.append("<p><em>No datatype mismatches.</em></p>")
+<body>
+<div class="header">{{table_name}} – Data Quality Dashboard </div>
 
-    # Row-level mismatches
-    html.append(f"<h2>Row-level mismatches by {primary_key}</h2>")
-    if row_diff is not None and not row_diff.empty:
-        styled = row_diff.copy()
-        styled["value_sf"] = styled["value_sf"].apply(lambda v: f"<span class='sf-cell'>{v}</span>")
-        styled["value_laweb"] = styled["value_laweb"].apply(lambda v: f"<span class='laweb-cell'>{v}</span>")
-        html.append(styled.to_html(index=False, escape=False))
-    else:
-        html.append("<p><em>No row-level mismatches in sample.</em></p>")
+<div class="container">
 
-    html.append("</body></html>")
+<div class="flex-row">
 
-    html_str = "\n".join(html)
-    with open(output, "w", encoding="utf-8") as f:
-        f.write(html_str)
+    <div class="card" style="flex:0 0 280px">
+        <h2 style="text-align:center;margin-bottom:10px;">Overall Quality</h2>
+        <div class="gauge"><div class="gauge-center">{{score}}%</div></div>
+    </div>
 
-    print(f"HTML report generated: {output}")
+    <div class="card" style="flex:1;">
+        <h2>Summary Statistics</h2>
+        <div class="flex-row">
+            <div class="summary-box"><h3>Passed</h3>
+                <div class="summary-value pass">{{passed}}</div></div>
+            <div class="summary-box"><h3>Failed</h3>
+                <div class="summary-value fail">{{failed}}</div></div>
+            <div class="summary-box"><h3>Skipped</h3>
+                <div class="summary-value warn">{{skipped}}</div></div>
+            <div class="summary-box"><h3>Critical Failures</h3>
+                <div class="summary-value fail">{{critical_failed}}</div></div>
+        </div>
+    </div>
+</div>
+
+<details open><summary>Rule Breakdown</summary>
+{{rule_table}}
+</details>
+
+<details><summary>Missing / Extra Columns</summary>
+{{missing_columns}}
+</details>
+
+<details><summary>Datatype Differences</summary>
+{{dtype_diff}}
+</details>
+
+<details><summary>ID Mismatch Summary</summary>
+{{id_diff}}
+</details>
+
+<details><summary>Row-level Mismatches (first 100)</summary>
+{{row_diff}}
+</details>
+
+</div>
+</body>
+</html>
+"""
+
+    html = (
+        template.replace("{{table_name}}", str(table_name))
+        .replace("{{score}}", str(score))
+        .replace("{{passed}}", str(passed))
+        .replace("{{failed}}", str(failed))
+        .replace("{{skipped}}", str(skipped))
+        .replace("{{critical_failed}}", str(critical_failed))
+        .replace("{{score_fail_deg}}", str(score_fail_deg))
+        .replace("{{score_warn_deg}}", str(score_warn_deg))
+        .replace("{{score_pass_deg}}", str(score_pass_deg))
+        .replace("{{rule_table}}", rule_table_html)
+        .replace("{{missing_columns}}", missing_columns_html)
+        .replace("{{dtype_diff}}", dtype_diff_html)
+        .replace("{{id_diff}}", id_diff_html)
+        .replace("{{row_diff}}", row_diff_html)
+    )
+
+    os.makedirs(output_folder, exist_ok=True)
+    filename = os.path.join(output_folder, f"{table_name}_comparison_report.html")
+
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(html)
+
+    print(f"\n✅ HTML report generated: {filename}")
+    return filename
+
+
+# Backward-compat alias if older code imports this name
+generate_html_report = create_html_report

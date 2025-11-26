@@ -1,0 +1,62 @@
+rules:
+  V01:
+    name: "Record Count Match"
+    type: "row_count"
+    priority: "Critical"
+    enabled: true
+    tolerance: 0
+
+  C01:
+    name: "Missing Records in LAWEB"
+    type: "missing_ids"
+    priority: "Critical"
+    enabled: true
+
+  C02:
+    name: "Extra Records in LAWEB"
+    type: "extra_ids"
+    priority: "High"
+    enabled: true
+
+  S01:
+    name: "Column Count Match"
+    type: "column_count"
+    priority: "High"
+    enabled: true
+
+  S02:
+    name: "Column Name Match"
+    type: "column_names"
+    priority: "High"
+    enabled: true
+
+  P01:
+    name: "Primary Key Uniqueness"
+    type: "pk_unique"
+    priority: "Critical"
+    enabled: true
+
+  P02:
+    name: "Primary Key Not NULL"
+    type: "pk_not_null"
+    priority: "Critical"
+    enabled: true
+
+  CM01:
+    name: "Sample Row Match"
+    type: "sample_row_compare"
+    priority: "High"
+    enabled: true
+
+  CM02:
+    name: "Full Row Match"
+    type: "full_row_compare"
+    priority: "High"
+    enabled: true
+
+  CM03:
+    name: "Null Pattern Consistency"
+    type: "null_pattern"
+    priority: "Medium"
+    enabled: true
+    threshold: 20.0

@@ -1,0 +1,585 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8" />
+<title>StoricoReferenteEntita – Data Quality Dashboard</title>
+
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+        background: #121417;
+        color: #e8e8e8;
+        margin: 0;
+        padding: 0;
+    }
+    .header {
+        background: linear-gradient(135deg,#007bff,#003d99);
+        padding: 30px;
+        text-align:center;
+        font-size:30px;
+        font-weight:bold;
+        color:white;
+        box-shadow:0 3px 10px rgba(0,0,0,0.4);
+    }
+    .container { width:94%; margin:20px auto; }
+    .card {
+        background: rgba(255,255,255,0.07);
+        border-radius:14px;
+        padding:20px;
+        margin-bottom:25px;
+        box-shadow:0 4px 14px rgba(0,0,0,0.35);
+    }
+    .flex-row { display:flex; flex-wrap:wrap; gap:20px; }
+    .gauge {
+        width:260px;height:260px;border-radius:50%;
+        background: conic-gradient(
+            #ff3d3d 162.0deg,
+            #ffcc00 0.0deg,
+            #00cc66 0.0deg
+        );
+        display:flex;align-items:center;justify-content:center;
+    }
+    .gauge-center {
+        width:180px;height:180px;border-radius:50%;
+        background:#121417;
+        font-size:42px;font-weight:bold;color:#00ff9d;
+        display:flex;align-items:center;justify-content:center;
+        box-shadow:0 0 18px rgba(0,255,157,0.45);
+    }
+    .summary-box { flex:1;min-width:200px;text-align:center; }
+    .summary-value { font-size:34px;font-weight:bold; }
+    .pass{color:#00ff9d;} .fail{color:#ff5252;} .warn{color:#ffcc00;}
+
+    details {
+        background: rgba(255,255,255,0.06);
+        padding:14px;border-radius:12px;margin-bottom:20px;
+        box-shadow:0 2px 6px rgba(0,0,0,0.4);
+    }
+    summary {font-size:20px;font-weight:bold;cursor:pointer;}
+
+    table{width:100%;border-collapse:collapse;margin-top:10px;font-size:14px;}
+    th{background:#1f2937;padding:10px;}
+    td{padding:7px;border-bottom:1px solid #333;}
+    tr:nth-child(even){background:#1a1f25;}
+    tr:hover{background:#28333f;}
+
+    .rule-pass{color:#00ff9d;font-weight:bold;}
+    .rule-fail{color:#ff6666;font-weight:bold;}
+    .rule-skip{color:#ffcc00;font-weight:bold;}
+
+    .sf-cell{background:#661111;color:#ffbaba;padding:3px;border-radius:4px;}
+    .lw-cell{background:#0d4d22;color:#9effc2;padding:3px;border-radius:4px;}
+
+</style>
+</head>
+
+<body>
+<div class="header">StoricoReferenteEntita – Data Quality Dashboard (v2.1)</div>
+
+<div class="container">
+
+<div class="flex-row">
+
+    <div class="card" style="flex:0 0 280px">
+        <h2 style="text-align:center;margin-bottom:10px;">Overall Quality</h2>
+        <div class="gauge"><div class="gauge-center">45.0%</div></div>
+    </div>
+
+    <div class="card" style="flex:1;">
+        <h2>Summary Statistics</h2>
+        <div class="flex-row">
+            <div class="summary-box"><h3>Passed</h3>
+                <div class="summary-value pass">3</div></div>
+            <div class="summary-box"><h3>Failed</h3>
+                <div class="summary-value fail">5</div></div>
+            <div class="summary-box"><h3>Skipped</h3>
+                <div class="summary-value warn">0</div></div>
+            <div class="summary-box"><h3>Critical Failures</h3>
+                <div class="summary-value fail">1</div></div>
+        </div>
+    </div>
+</div>
+
+<details open><summary>Rule Breakdown</summary>
+<table><tr><th>Rule ID</th><th>Name</th><th>Priority</th><th>Status</th><th>Details</th></tr><tr><td>V01</td><td>Record Count Match</td><td>Critical</td><td class='rule-pass'>PASS</td><td>Row count match (SF=5000, LAWEB=5000, diff=0, tol=0).</td></tr><tr><td>C01</td><td>Missing Records in LAWEB</td><td>Critical</td><td class='rule-fail'>FAIL</td><td>738 IDs present in SF but missing in LAWEB.</td></tr><tr><td>C02</td><td>Extra Records in LAWEB</td><td>High</td><td class='rule-fail'>FAIL</td><td>738 IDs present in LAWEB but missing in SF.</td></tr><tr><td>S01</td><td>Column Count Match</td><td>High</td><td class='rule-fail'>FAIL</td><td>Column counts differ (SF=28, LAWEB=30).</td></tr><tr><td>S02</td><td>Column Name Match</td><td>High</td><td class='rule-fail'>FAIL</td><td>Missing in SF: 5, missing in LAWEB: 3.</td></tr><tr><td>P01</td><td>Primary Key Uniqueness</td><td>Critical</td><td class='rule-pass'>PASS</td><td>Primary key is unique in both datasets.</td></tr><tr><td>P02</td><td>Primary Key Not NULL</td><td>Critical</td><td class='rule-pass'>PASS</td><td>Primary key has no NULL values in both datasets.</td></tr><tr><td>CM01</td><td>Sample Row Match</td><td>High</td><td class='rule-fail'>FAIL</td><td>3 row-level mismatches detected (sample, max 100 shown).</td></tr></table>
+</details>
+
+<details><summary>Missing / Extra Columns</summary>
+<h4>Columns present in LAWEB but missing in SF</h4><pre>CODICESOTTOPERIODO
+CONTRATTO_ID
+DATAFINESOTTOPERIODO
+DATAINIZIOSOTTOPERIODO
+DESCRIZIONESOTTOPERIODO</pre><h4>Columns present in SF but missing in LAWEB</h4><pre>COUNTRY_CODE
+LOAD_DATETIME
+RECORD_SOURCE</pre>
+</details>
+
+<details><summary>Datatype Differences</summary>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>COLUMN</th>
+      <th>SF_DTYPE</th>
+      <th>LAWEB_DTYPE</th>
+      <th>MATCH</th>
+      <th>REASON</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>CORRENTE</td>
+      <td>bool</td>
+      <td>int64</td>
+      <td>False</td>
+      <td>Inferred dtype mismatch</td>
+    </tr>
+    <tr>
+      <td>INFO_DATA</td>
+      <td>float64</td>
+      <td>object</td>
+      <td>False</td>
+      <td>Inferred dtype mismatch</td>
+    </tr>
+  </tbody>
+</table>
+</details>
+
+<details><summary>ID Mismatch Summary</summary>
+<h4>IDs present in SF but missing in LAWEB (738)</h4><pre>34,919,087
+34,919,088
+34,919,089
+34,919,090
+34,919,091
+34,919,092
+34,919,093
+34,919,094
+34,919,095
+34,919,096
+34,919,097
+34,919,098
+34,919,099
+34,919,100
+34,919,101
+34,919,102
+34,919,103
+34,919,104
+34,919,105
+34,919,106
+34,919,107
+34,919,108
+34,919,109
+34,919,110
+34,919,111
+34,919,112
+34,919,113
+34,919,114
+34,919,115
+34,919,116
+34,919,117
+34,919,118
+34,919,119
+34,919,120
+34,919,121
+34,919,122
+34,919,123
+34,919,124
+34,919,125
+34,919,126
+34,919,127
+34,919,128
+34,919,129
+34,919,130
+34,919,131
+34,919,132
+34,919,133
+34,919,134
+34,919,135
+34,919,136
+34,919,137
+34,919,138
+34,919,139
+34,919,140
+34,919,141
+34,919,142
+34,919,143
+34,919,144
+34,919,145
+34,919,146
+34,919,147
+34,919,148
+34,919,149
+34,919,150
+34,919,151
+34,919,152
+34,919,153
+34,919,154
+34,919,155
+34,919,156
+34,919,157
+34,919,158
+34,919,159
+34,919,160
+34,919,161
+34,919,162
+34,919,163
+34,919,164
+34,919,165
+34,919,166
+34,919,167
+34,919,168
+34,919,169
+34,919,170
+34,919,171
+34,919,172
+34,919,173
+34,919,174
+34,919,175
+34,919,176
+34,919,177
+34,919,178
+34,919,179
+34,919,180
+34,919,181
+34,919,182
+34,919,183
+34,919,184
+34,919,185
+34,919,186
+34,919,187
+34,919,188
+34,919,189
+34,919,190
+34,919,191
+34,919,192
+34,919,193
+34,919,194
+34,919,195
+34,919,196
+34,919,197
+34,919,198
+34,919,199
+34,919,200
+34,919,201
+34,919,202
+34,919,203
+34,919,204
+34,919,205
+34,919,206
+34,919,207
+34,919,208
+34,919,209
+34,919,210
+34,919,211
+34,919,212
+34,919,213
+34,919,214
+34,919,215
+34,919,216
+34,919,217
+34,919,218
+34,919,219
+34,919,220
+34,919,221
+34,919,222
+34,919,223
+34,919,224
+34,919,225
+34,919,226
+34,919,227
+34,919,228
+34,919,229
+34,919,230
+34,919,231
+34,919,232
+34,919,233
+34,919,234
+34,919,235
+34,919,236
+34,919,237
+34,919,238
+34,919,239
+34,919,240
+34,919,241
+34,919,242
+34,919,243
+34,919,244
+34,919,245
+34,919,246
+34,919,247
+34,919,248
+34,919,249
+34,919,250
+34,919,251
+34,919,252
+34,919,253
+34,919,254
+34,919,255
+34,919,256
+34,919,257
+34,919,258
+34,919,259
+34,919,260
+34,919,261
+34,919,262
+34,919,263
+34,919,264
+34,919,265
+34,919,266
+34,919,267
+34,919,268
+34,919,269
+34,919,270
+34,919,271
+34,919,272
+34,919,273
+34,919,274
+34,919,275
+34,919,276
+34,919,277
+34,919,278
+34,919,279
+34,919,280
+34,919,281
+34,919,282
+34,919,283
+34,919,284
+34,919,285
+34,919,286</pre><h4>IDs present in LAWEB but missing in SF (738)</h4><pre>34,915,283
+34,915,284
+34,915,285
+34,915,286
+34,915,287
+34,915,288
+34,915,289
+34,915,290
+34,915,291
+34,915,292
+34,915,293
+34,915,294
+34,915,295
+34,915,296
+34,915,297
+34,915,298
+34,915,299
+34,915,300
+34,915,301
+34,915,302
+34,915,303
+34,915,304
+34,915,305
+34,915,306
+34,915,307
+34,915,308
+34,915,309
+34,915,310
+34,915,311
+34,915,313
+34,915,314
+34,915,315
+34,915,316
+34,915,317
+34,915,318
+34,915,319
+34,915,320
+34,915,321
+34,915,322
+34,915,323
+34,915,324
+34,915,325
+34,915,326
+34,915,327
+34,915,328
+34,915,329
+34,915,330
+34,915,335
+34,915,336
+34,915,337
+34,915,338
+34,915,339
+34,915,340
+34,915,341
+34,915,342
+34,915,343
+34,915,344
+34,915,345
+34,915,346
+34,915,347
+34,915,348
+34,915,349
+34,915,350
+34,915,351
+34,915,352
+34,915,353
+34,915,354
+34,915,355
+34,915,356
+34,915,357
+34,915,358
+34,915,359
+34,915,360
+34,915,361
+34,915,362
+34,915,363
+34,915,364
+34,915,365
+34,915,366
+34,915,367
+34,915,368
+34,915,369
+34,915,370
+34,915,371
+34,915,372
+34,915,373
+34,915,374
+34,915,375
+34,915,376
+34,915,377
+34,915,378
+34,915,379
+34,915,380
+34,915,381
+34,915,382
+34,915,383
+34,915,384
+34,915,385
+34,915,386
+34,915,387
+34,915,388
+34,915,389
+34,915,390
+34,915,391
+34,915,392
+34,915,393
+34,915,394
+34,915,395
+34,915,396
+34,915,397
+34,915,398
+34,915,399
+34,915,400
+34,915,401
+34,915,402
+34,915,403
+34,915,406
+34,915,407
+34,915,408
+34,915,409
+34,915,410
+34,915,411
+34,915,412
+34,915,414
+34,915,415
+34,915,416
+34,915,417
+34,915,418
+34,915,419
+34,915,420
+34,915,421
+34,915,422
+34,915,423
+34,915,424
+34,915,425
+34,915,426
+34,915,427
+34,915,428
+34,915,429
+34,915,430
+34,915,431
+34,915,432
+34,915,433
+34,915,434
+34,915,435
+34,915,436
+34,915,437
+34,915,438
+34,915,439
+34,915,440
+34,915,441
+34,915,442
+34,915,443
+34,915,444
+34,915,445
+34,915,446
+34,915,447
+34,915,448
+34,915,449
+34,915,450
+34,915,451
+34,915,452
+34,915,453
+34,915,454
+34,915,455
+34,915,456
+34,915,457
+34,915,458
+34,915,459
+34,915,460
+34,915,461
+34,915,462
+34,915,463
+34,915,464
+34,915,465
+34,915,466
+34,915,467
+34,915,468
+34,915,469
+34,915,470
+34,915,471
+34,915,472
+34,915,473
+34,915,474
+34,915,475
+34,915,476
+34,915,477
+34,915,478
+34,915,479
+34,915,480
+34,915,481
+34,915,482
+34,915,483
+34,915,484
+34,915,485
+34,915,486
+34,915,487
+34,915,488
+34,915,489
+34,915,490</pre>
+</details>
+
+<details><summary>Row-level Mismatches (first 100)</summary>
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th>PK</th>
+      <th>COLUMN</th>
+      <th>value_sf</th>
+      <th>value_laweb</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>34,920,189</td>
+      <td>AUDIT_MODIFIEDDATE</td>
+      <td><span class='sf-cell'>2025-11-24 14:22:56.118</span></td>
+      <td><span class='lw-cell'>2025-11-25 01:32:47.593</span></td>
+    </tr>
+    <tr>
+      <td>34,920,189</td>
+      <td>CORRENTE</td>
+      <td><span class='sf-cell'>True</span></td>
+      <td><span class='lw-cell'>0</span></td>
+    </tr>
+    <tr>
+      <td>34,920,189</td>
+      <td>DATAFINEVALIDITA</td>
+      <td><span class='sf-cell'>__NA__</span></td>
+      <td><span class='lw-cell'>2025-11-25 01:32:47.593</span></td>
+    </tr>
+  </tbody>
+</table>
+</details>
+
+</div>
+</body>
+</html>

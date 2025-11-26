@@ -1,56 +1,65 @@
 from typing import List
 import pandas as pd
 
-def compare_rows(sf, laweb, pk: str, common_cols: list, max_mismatches: int = 500) -> pd.DataFrame:
-    """
-    Row-level value comparison between SF and LAWEB on common IDs and columns.
 
-    Returns a DataFrame with columns:
-        pk, column, value_sf, value_laweb
+def compare_rows(
+    sf: pd.DataFrame,
+    laweb: pd.DataFrame,
+    primary_key: str,
+    common_cols: List[str],
+    max_mismatches: int = 100,
+) -> pd.DataFrame:
     """
-    if sf is None or laweb is None:
-        return pd.DataFrame(columns=[pk, "column", "value_sf", "value_laweb"])
+    Row-level comparison between SF & LAWEB.
 
-    if pk not in sf.columns or pk not in laweb.columns:
-        return pd.DataFrame(columns=[pk, "column", "value_sf", "value_laweb"])
+    - Joins on primary_key (inner join).
+    - For each common column, checks where values differ.
+    - Returns a "long" DataFrame with columns:
+        PK, COLUMN, value_sf, value_laweb
+    - Limits to max_mismatches to keep HTML report readable.
+    """
+    pk = primary_key.strip().upper()
 
     merged = sf.merge(laweb, on=pk, how="inner", suffixes=("_SF", "_LAWEB"))
 
-    mismatches_records = []
+    results = []
+    count = 0
 
     for col in common_cols:
-        if col == pk:
-            continue
-
         col_sf = f"{col}_SF"
-        col_laweb = f"{col}_LAWEB"
+        col_lw = f"{col}_LAWEB"
 
-        if col_sf not in merged.columns or col_laweb not in merged.columns:
+        if col_sf not in merged.columns or col_lw not in merged.columns:
             continue
 
-        # Convert to object, fill NaNs with same placeholder, then compare
-        sf_col = merged[col_sf].astype("object").fillna("__NA__").infer_objects(copy=False)
-        laweb_col = merged[col_laweb].astype("object").fillna("__NA__").infer_objects(copy=False)
+        sf_series = merged[col_sf].fillna("__NA__")
+        lw_series = merged[col_lw].fillna("__NA__")
 
-        diff_mask = sf_col != laweb_col
-        diff_rows = merged[diff_mask][[pk, col_sf, col_laweb]]
+        diff_mask = sf_series != lw_series
+        diff_indices = merged.index[diff_mask]
 
-        for _, row in diff_rows.iterrows():
-            mismatches_records.append(
-                {
-                    pk: row[pk],
-                    "column": col,
-                    "value_sf": row[col_sf],
-                    "value_laweb": row[col_laweb],
-                }
-            )
-            if len(mismatches_records) >= max_mismatches:
+        for idx in diff_indices:
+            if count >= max_mismatches:
                 break
 
-        if len(mismatches_records) >= max_mismatches:
+            pk_val = merged.at[idx, pk]
+            val_sf = sf_series.at[idx]
+            val_lw = lw_series.at[idx]
+
+            results.append(
+                {
+                    "PK": pk_val,
+                    "COLUMN": col,
+                    "value_sf": str(val_sf),
+                    "value_laweb": str(val_lw),
+                }
+            )
+            count += 1
+
+        if count >= max_mismatches:
             break
 
-    if mismatches_records:
-        return pd.DataFrame(mismatches_records)
-    else:
-        return pd.DataFrame(columns=[pk, "column", "value_sf", "value_laweb"])
+    if not results:
+        return pd.DataFrame(columns=["PK", "COLUMN", "value_sf", "value_laweb"])
+
+    return pd.DataFrame(results)
