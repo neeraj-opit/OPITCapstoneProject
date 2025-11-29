@@ -41,3 +41,24 @@ tables:
 
     mandatory_fields:
       - ID
+
+  IstanzaAttributoTask:
+    sf: "data/raw/IstanzaAttributoTask_SF.csv"
+    laweb: "data/raw/IstanzaAttributoTask_LAWEB.csv"
+    primary_key: "ID"
+    dtype_map: null # "data/raw/DTypes_IstanzaAttributoTask_Sf_VS_Laweb.xlsx"
+
+    rules_enabled:
+      - V01      # Row count
+      - C01      # Missing IDs in LAWEB
+      - C02      # Extra IDs in LAWEB
+      - S01      # Column count
+      - S02      # Column names
+      - P01      # PK unique
+      - P02      # PK not null
+      - CM02     # Full row compare
+      - CM03     # Null pattern consistency
+
+    mandatory_fields:
+      - ID
+
